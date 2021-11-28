@@ -20,6 +20,3 @@ Then, use the following URL in the browser source: `http://<web server address>/
 ### Available options:
  - `userName` (required) - the user whose chat to look at.
  - `userId` (optional) - the ID of the user whose chat to look at (needed for fetching custom badges).
-
-## Known issues
- - Messages with both ZWJ sequences and Twitch emotes will fall apart if the Twitch emote is after a ZWJ sequence.
