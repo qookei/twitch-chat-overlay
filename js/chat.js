@@ -123,7 +123,8 @@ async function applyEmotes(message, emotes) {
 				isImage: false
 			};
 
-			const toInsert = [before, emotePart, after].filter(part => part !== null && (part.content.length || part.isImage));
+			const toInsert = [before, emotePart, after].filter(part =>
+				part !== null && (part.content.length || part.isImage));
 
 			Array.prototype.splice.apply(parts, [i, 1].concat(toInsert));
 
@@ -176,11 +177,11 @@ async function makeChatElement(data, badgeData, messageComps) {
 			badgeData[badge.name].description);
 
 		badgeIcon.classList.add('chat-message-author-badge');
-		badgeIcons.appendChild(badgeIcon);
+		badgeIcons.append(badgeIcon);
 	}
-	author.appendChild(badgeIcons);
+	author.append(badgeIcons);
 
-	outer.appendChild(author);
+	outer.append(author);
 
 	const body = document.createElement('div');
 	body.classList.add('chat-message-body');
@@ -188,17 +189,17 @@ async function makeChatElement(data, badgeData, messageComps) {
 
 	for (const comp of messageComps) {
 		if (comp.isImage) {
-			body.appendChild(comp.content);
+			body.append(comp.content);
 		} else {
 			const text = document.createElement('span');
 			text.innerHTML = htmlEncode(comp.content);
-			body.appendChild(text);
+			body.append(text);
 		}
 	}
 
 	twemoji.parse(body, { folder: 'svg', ext: '.svg' });
 
-	outer.appendChild(body);
+	outer.append(body);
 
 	container.append(outer);
 	return container;
@@ -232,52 +233,56 @@ function isInViewport(elem) {
 }
 
 getBadges().then(badgeData => {
-		const ws = new WebSocket(WS_ADDR);
+	const ws = new WebSocket(WS_ADDR);
 
-		ws.onerror = (evt) => {
-			console.log('Error:', evt.data);
-		};
+	ws.onerror = (evt) => {
+		console.log('Error:', evt.data);
+	};
 
-		ws.onmessage = (evt) => {
-			const lines = evt.data.split('\r\n');
+	ws.onmessage = (evt) => {
+		const lines = evt.data.split('\r\n');
 
-			for (const line of lines) {
-				if (line.startsWith('PING')) {
-					ws.send(`PONG ${line.substring(6)}`);
-				} else if (line.startsWith('@')) {
-					const components = line.substring(1).split(' ');
-					const tags = components[0].split(';');
-					const data = parseTags(tags);
+		for (const line of lines) {
+			if (line.startsWith('PING')) {
+				ws.send(`PONG ${line.substring(6)}`);
+			} else if (line.startsWith('@')) {
+				const components = line.substring(1).split(' ');
+				const tags = components[0].split(';');
+				const data = parseTags(tags);
 
-					const privmsgIndex = line.indexOf('PRIVMSG');
-					const msg = line.substring(privmsgIndex + 11 + userName.length);
-					applyEmotes(msg, data.emotes).then(async body => {
-						const container = document.querySelector('#container');
-						const child = await makeChatElement(data, badgeData, body);
+				const privmsgIndex = line.indexOf('PRIVMSG');
+				const msg = line.substring(privmsgIndex + 11 + userName.length);
+				applyEmotes(msg, data.emotes).then(async body => {
+					const container = document.querySelector('#container');
+					const child = await makeChatElement(data, badgeData, body);
 
-						container.appendChild(child);
-
-						for (let i = 0; i < container.children.length;) {
-							const child = container.children[i];
-							if (isInViewport(child)) {
-								i++;
-							} else {
-								container.removeChild(child);
-							}
-						}
-
-						document.scrollingElement.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-					});
-				} else if (VERBOSE) {
-					console.log('Unexpected message', line);
-				}
+					container.append(child);
+				});
+			} else if (VERBOSE) {
+				console.log('Unexpected message', line);
 			}
-		};
-
-		ws.onopen = (evt) => {
-			ws.send('CAP REQ :twitch.tv/tags');
-			ws.send('PASS blah');
-			ws.send('NICK justinfan123');
-			ws.send(`JOIN #${userName}`);
 		}
-	});
+	};
+
+	ws.onopen = (evt) => {
+		ws.send('CAP REQ :twitch.tv/tags');
+		ws.send('PASS blah');
+		ws.send('NICK justinfan123');
+		ws.send(`JOIN #${userName}`);
+	}
+});
+
+new ResizeObserver(entries => {
+	const container = entries[0].target;
+
+	for (let i = 0; i < container.children.length;) {
+		const child = container.children[i];
+		if (isInViewport(child)) {
+			i++;
+		} else {
+			container.removeChild(child);
+		}
+	}
+
+	document.scrollingElement.scrollTo({ top: document.body.scrollHeight });
+}).observe(document.querySelector('#container'));
